@@ -89,6 +89,39 @@ impl Default for Thresholds {
     }
 }
 
+/// Parse a human duration into days: `30d`, `6w`, `6mo`, `1y`, or a bare
+/// number of days.
+///
+/// Exists so the one threshold users actually touch reads like a sentence
+/// instead of arithmetic.
+pub fn parse_days(input: &str) -> Result<u64, String> {
+    let s = input.trim().to_lowercase();
+    if s.is_empty() {
+        return Err("empty duration".into());
+    }
+
+    // Longest suffix first: `mo` must win over `m`.
+    let (digits, per_unit) = [("mo", 30), ("y", 365), ("w", 7), ("d", 1), ("m", 30)]
+        .into_iter()
+        .find_map(|(suffix, mult)| s.strip_suffix(suffix).map(|rest| (rest, mult)))
+        .unwrap_or((s.as_str(), 1));
+
+    digits
+        .trim()
+        .parse::<u64>()
+        .map(|n| n * per_unit)
+        .map_err(|_| format!("invalid duration `{input}`; try 30d, 6mo or 1y"))
+}
+
+/// How many times a tool must appear in history before it is plainly alive.
+///
+/// Derived from how much history there is to read: a fresh machine with 500
+/// recorded commands cannot clear the same bar as one with 20 000, and asking
+/// users to work that out themselves is why this used to be a flag.
+pub fn auto_active_hits(total_invocations: usize) -> u32 {
+    ((total_invocations / 1000) as u32).clamp(3, 50)
+}
+
 /// Order matters: every rule below exists to rescue a package from a wrong
 /// `Unused` verdict, so the cheapest-to-trust evidence is checked first.
 pub fn classify(signals: &Signals, thresholds: Thresholds, now: SystemTime) -> Verdict {
@@ -209,6 +242,39 @@ mod tests {
             classify(&s, Thresholds::default(), now()),
             Verdict::Indirect
         );
+    }
+
+    #[test]
+    fn durations_read_like_sentences() {
+        assert_eq!(parse_days("30d"), Ok(30));
+        assert_eq!(parse_days("6w"), Ok(42));
+        assert_eq!(parse_days("6mo"), Ok(180));
+        assert_eq!(parse_days("1y"), Ok(365));
+        // A bare number is days, which is the unit people mean by default.
+        assert_eq!(parse_days("90"), Ok(90));
+        assert_eq!(parse_days(" 6MO "), Ok(180));
+    }
+
+    #[test]
+    fn months_win_over_the_shorter_suffix() {
+        // `6mo` must not parse as 6 of whatever `o` would mean.
+        assert_eq!(parse_days("6mo"), parse_days("6m"));
+    }
+
+    #[test]
+    fn nonsense_durations_are_rejected() {
+        assert!(parse_days("soon").is_err());
+        assert!(parse_days("").is_err());
+        assert!(parse_days("-5d").is_err());
+    }
+
+    #[test]
+    fn activity_bar_scales_with_available_history() {
+        assert_eq!(auto_active_hits(19_017), 19);
+        // A nearly empty history must not set an impossible bar.
+        assert_eq!(auto_active_hits(200), 3);
+        // Nor an enormous one an absurdly high one.
+        assert_eq!(auto_active_hits(900_000), 50);
     }
 
     #[test]

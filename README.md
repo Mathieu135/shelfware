@@ -6,11 +6,11 @@ Find the tools you installed and stopped using.
 actually use it, then tells you what earns its disk space and what does not.
 
 ```
-shelfware — 65 packages inspected
+shelfware — 66 packages inspected
 
-  active         13   Typed regularly at your prompt
-  indirect       42   Executed recently, but not by you typing it
-  rare            3   Typed occasionally, and not executed lately
+  active         11   Typed regularly at your prompt
+  indirect       44   Executed recently, but not by you typing it
+  rare            4   Typed occasionally, and not executed lately
   integration     1   Never executed, but wired into your shell config
   unused          6   No signal from any source — removal candidates
 
@@ -31,8 +31,10 @@ job, a git hook or a coding agent runs them on your behalf. Meanwhile `bat`
 looks dead because you spelled it `cat` ever since you aliased it, and `direnv`
 looks dead because nobody types the name of a shell plugin.
 
-Every one of those is a false positive that erodes trust in the report. So
-`shelfware` reads four independent signals, each blind in a different way:
+On the machine this was written for, a naive count produced 13 removal
+candidates. Six were real.
+
+So `shelfware` reads four independent signals, each blind in a different way:
 
 | Signal | Sees | Misses |
 | --- | --- | --- |
@@ -55,95 +57,66 @@ A package is only reported as removable when *all four* stay silent.
 
 ## Install
 
-```sh
-cargo install --git https://github.com/<you>/shelfware
-```
-
-Requires Rust 1.88 or newer. SQLite is compiled in, so Atuin support needs no
-system library.
-
-## Usage
+Requires Rust 1.88+ and a C compiler (SQLite is built from source, so Atuin
+support needs no system library).
 
 ```sh
-shelfware                          # the report
-shelfware --all                    # include everything, not just what is actionable
-shelfware --only unused            # one category
-shelfware --json | jq              # for scripts
-shelfware --managers brew,cargo    # narrow the inventory
-shelfware --stale-days 90          # "recent" means the last quarter
-shelfware --active-hits 5          # lower the bar for "clearly alive"
+# Linux — install a compiler first if you have none
+sudo apt install build-essential      # or: dnf install gcc / pacman -S base-devel
+
+cargo install --git https://github.com/Mathieu135/shelfware
 ```
-
-`-h` prints a one-screen summary; `--help` prints the full manual, including
-what each verdict means, what each signal can and cannot see, and worked
-examples.
-
-## Removing things
 
 ```sh
-shelfware --uninstall-script > cleanup.sh
+# macOS
+xcode-select --install
+cargo install --git https://github.com/Mathieu135/shelfware
 ```
 
-This writes a shell script that uninstalls the packages in question, keeping
-the evidence for each one as a comment above its command. It is printed, never
-executed: redirect it, delete the lines you disagree with, then run it
-yourself.
-
-That separation is deliberate. Some verdicts rest on guessed binary names, and
-every signal here has a documented blind spot — an audit tool has no business
-uninstalling anything on that basis. Defaults to the `unused` set; pair it with
-`--only` for another category.
-
-## Shell completion
+## Use
 
 ```sh
-shelfware --completions zsh  > ~/.config/zsh/completions/_shelfware
-shelfware --completions bash > ~/.local/share/bash-completion/completions/shelfware
-shelfware --completions fish > ~/.config/fish/completions/shelfware.fish
+shelfware                     # the report
+shelfware clean               # a removal script to review
+shelfware completions zsh     # shell completion
 ```
 
-`elvish` and `powershell` are supported too. For zsh, make sure the directory
-is on your `fpath` before `compinit` runs.
+That is the whole interface. The one setting worth knowing is `--since`, which
+decides how far back an execution still counts as "in use":
+
+```sh
+shelfware --since 6mo
+```
+
+`shelfware clean` prints a script rather than removing anything — you review
+it, delete what you disagree with, and run it yourself. Some verdicts rest on
+guessed binary names, so the final call stays yours.
 
 Supported inventories: Homebrew (`brew leaves` only, so dependencies are never
 suggested for removal), cargo, uv, pipx, npm globals, and `go install`
-binaries. A package manager you do not have contributes nothing and is not an
-error.
+binaries. A package manager you do not have contributes nothing.
 
-## Configuration
+## Documentation
 
-Optional, at `~/.config/shelfware/config.toml`:
+- [Usage](docs/usage.md) — installation, every option, configuration, JSON, cron
+- [How it works](docs/how-it-works.md) — the signals, the verdict rules, the blind spots
 
-```toml
-active_hits = 20
-stale_days  = 30
-managers    = ["brew", "cargo"]
-ignore      = ["pam-reattach", "switchaudio-osx"]
-```
-
-`ignore` exists because some answers are permanent: a tool you knowingly keep
-for once-a-year use should stop being proposed every month.
+`--help` carries the same material in the terminal; `-h` stays a single screen.
 
 ## Limitations
 
-Worth knowing before you uninstall anything:
+- **Access times can be disabled.** On Linux, `noatime` mounts give no signal
+  at all. Check yours before trusting the `indirect` verdict.
+- **Package upgrades touch files**, which can make a dead package look
+  recently used. Conservative in the right direction.
+- **Containers are invisible**, and access times are local even when your
+  history syncs across machines.
+- **npm binary names are guessed**, since npm does not report what a global
+  package installs.
+- **Casks and GUI apps are out of scope** — no command-line surface to measure.
 
-- **Access times can be disabled.** On Linux, filesystems mounted `noatime`
-  give no signal at all. macOS/APFS updates them, as do most default Linux
-  mounts, but check yours before trusting the `indirect` verdict.
-- **Symlinks lie.** A package manager's `bin/` entry keeps its own access time
-  frozen. `shelfware` resolves symlinks before asking; anything that copies
-  rather than links may still read as stale.
-- **Other machines do not count.** Atuin syncs history across hosts, but access
-  times are local. A tool you only use on a server will look idle here.
-- **Containers are invisible.** Anything you run inside Docker leaves no trace
-  on the host.
-- **npm binary names are guessed** from the package name, since npm does not
-  report what a global package installs.
-- **Casks and GUI apps are out of scope.** They have no command-line surface to
-  measure.
-
-The report is evidence for a decision, not the decision.
+Every row carries the evidence behind its verdict, so a wrong call is visible
+rather than buried. The report is evidence for a decision, not the decision.
 
 ## License
 

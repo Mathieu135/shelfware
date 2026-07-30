@@ -10,7 +10,7 @@ use std::path::{Path, PathBuf};
 use std::time::SystemTime;
 
 use anyhow::Result;
-use clap::{CommandFactory, Parser};
+use clap::{CommandFactory, Parser, Subcommand};
 use clap_complete::Shell;
 use serde::Deserialize;
 
@@ -24,6 +24,8 @@ pub struct Assessment {
     pub verdict: Verdict,
 }
 
+const DEFAULT_SINCE: &str = "30d";
+
 const LONG_ABOUT: &str = "\
 Cross-references what is installed on your machine against how you actually
 use it, then reports what earns its disk space and what does not.
@@ -33,7 +35,9 @@ jobs, git hooks, Makefiles and coding agents never reach your history, and a
 tool hidden behind an alias is spelled differently than it is installed. Left
 uncorrected, all of those look abandoned. shelfware reads four independent
 signals so that a package is only ever proposed for removal when every one of
-them stays silent.";
+them stays silent.
+
+Run it with no arguments. Everything else is optional.";
 
 const AFTER_LONG_HELP: &str = "\
 VERDICTS
@@ -58,30 +62,28 @@ SIGNALS
 
 EXAMPLES
   shelfware
-      The report. Only categories you can act on are detailed.
+      The report.
+
+  shelfware --since 6mo
+      Treat anything run in the last six months as still in use. This is the
+      one setting worth reaching for: raise it if you keep tools you touch a
+      few times a year.
 
   shelfware --all
-      Detail every category, including what you clearly use.
+      Detail every category, including the tools you obviously use.
 
-  shelfware --only rare --stale-days 90
-      Tools typed a few times that nothing has run this quarter.
-
-  shelfware --uninstall-script > cleanup.sh
+  shelfware clean > cleanup.sh
       A removal script to review and run yourself. Never executed for you.
 
-  shelfware --json | jq '.packages[] | select(.verdict==\"unused\") | .name'
-      For scripting.
-
-  shelfware --completions zsh > ~/.config/zsh/completions/_shelfware
+  shelfware completions zsh > ~/.cache/zsh/completions/_shelfware
       Shell completion. Also supports bash, fish, elvish and powershell.
 
 CONFIGURATION
   ~/.config/shelfware/config.toml, all keys optional:
 
-      active_hits = 20
-      stale_days  = 30
-      managers    = [\"brew\", \"cargo\"]
+      since       = \"30d\"
       ignore      = [\"pam-reattach\"]
+      managers    = [\"brew\", \"cargo\"]
 
   `ignore` is for permanent decisions: a tool you knowingly keep for
   once-a-year use should stop being proposed at every audit.
@@ -102,102 +104,125 @@ CAVEATS
     after_long_help = AFTER_LONG_HELP,
 )]
 struct Cli {
+    #[command(subcommand)]
+    command: Option<Command>,
+
+    /// How far back still counts as recently used, e.g. 30d, 6mo, 1y [default: 30d]
+    #[arg(
+        long,
+        value_name = "DURATION",
+        global = true,
+        long_help = "How far back an execution still counts as \"in use\". Accepts 30d,\n\
+                     6w, 6mo, 1y, or a bare number of days. Defaults to 30d, which is\n\
+                     deliberately tight — raise it if you keep tools you legitimately\n\
+                     touch only a few times a year."
+    )]
+    since: Option<String>,
+
+    /// Detail every category, not just the ones you can act on
+    #[arg(
+        long,
+        global = true,
+        long_help = "Detail every category. By default `active` and `indirect` are only\n\
+                     counted in the summary, since listing the tools you obviously use\n\
+                     buries the handful worth a decision."
+    )]
+    all: bool,
+
+    /// Emit JSON instead of a human report
+    #[arg(
+        long,
+        global = true,
+        long_help = "Emit JSON on stdout. Honours --only."
+    )]
+    json: bool,
+
+    // ── Below here: rarely needed, hidden from `-h` but kept in `--help`. ──
+    /// Show only one verdict
+    #[arg(
+        long,
+        value_name = "VERDICT",
+        global = true,
+        hide_short_help = true,
+        long_help = "Restrict the listing to one verdict: active, indirect, rare,\n\
+                     integration or unused. Summary counts still describe the whole\n\
+                     inventory. With `clean`, selects which category to remove."
+    )]
+    only: Option<String>,
+
     /// Package managers to inspect
     #[arg(
         long,
         value_delimiter = ',',
         value_name = "LIST",
-        long_help = "Comma-separated package managers to inspect, in place of all of them.\n\
-                     Supported: brew, cargo, uv, pipx, npm, go.\n\
-                     Homebrew is limited to `brew leaves`, so dependencies pulled in by\n\
-                     something else are never proposed for removal."
+        global = true,
+        hide_short_help = true,
+        long_help = "Comma-separated package managers to inspect, in place of all of\n\
+                     them. Supported: brew, cargo, uv, pipx, npm, go. Homebrew is\n\
+                     limited to `brew leaves`, so dependencies pulled in by something\n\
+                     else are never proposed for removal."
     )]
     managers: Option<Vec<String>>,
 
-    /// Uses at or above this count mean a package is plainly alive [default: 20]
-    #[arg(
-        long,
-        value_name = "N",
-        long_help = "How many times a package must appear in your shell history to be\n\
-                     called `active` outright. Lower it if your history is short or\n\
-                     recently reset; raise it to be stricter about what counts as busy."
-    )]
-    active_hits: Option<u32>,
-
-    /// How recently a binary must have run to still count as in use [default: 30]
-    #[arg(
-        long,
-        value_name = "DAYS",
-        long_help = "Age limit, in days, for the access-time signal. A binary executed\n\
-                     within this window is `indirect` rather than idle. Raise it for\n\
-                     tools you only touch once a quarter, such as release tooling."
-    )]
-    stale_days: Option<u64>,
-
-    /// Extra history sources (an Atuin .db, or a plain history file)
-    #[arg(
-        long,
-        value_name = "PATH",
-        long_help = "Read these history sources instead of auto-detecting. A path ending\n\
-                     in .db is opened as an Atuin database, anything else is parsed as a\n\
-                     plain history file. Repeatable, and useful for auditing history\n\
-                     copied over from another machine."
-    )]
-    history: Vec<PathBuf>,
-
-    /// Packages to leave out of the report entirely
+    /// Packages to leave out entirely
     #[arg(
         long,
         value_delimiter = ',',
         value_name = "LIST",
+        global = true,
+        hide_short_help = true,
         long_help = "Comma-separated packages to omit. Matches a package name or any\n\
-                     binary it provides. For decisions you want to keep, prefer the\n\
-                     `ignore` key in the config file over retyping this every time."
+                     binary it provides. For lasting decisions, prefer the `ignore` key\n\
+                     in the config file."
     )]
     ignore: Vec<String>,
 
-    /// Show every package, not just the actionable ones
+    /// Read these history sources instead of auto-detecting
     #[arg(
         long,
-        long_help = "Detail every category. By default `active` and `indirect` are only\n\
-                     counted in the summary, since listing the tools you obviously use\n\
-                     buries the handful worth deciding on."
+        value_name = "PATH",
+        global = true,
+        hide_short_help = true,
+        long_help = "Read these history sources instead of auto-detecting. A path ending\n\
+                     in .db is opened as an Atuin database, anything else is parsed as a\n\
+                     plain history file. Repeatable."
     )]
-    all: bool,
+    history: Vec<PathBuf>,
 
-    /// Show only one verdict
+    /// Override the auto-calibrated activity threshold
     #[arg(
         long,
-        value_name = "VERDICT",
-        long_help = "Restrict the detailed listing to one verdict: active, indirect,\n\
-                     rare, integration or unused. The summary counts still describe the\n\
-                     whole inventory."
+        value_name = "N",
+        global = true,
+        hide_short_help = true,
+        long_help = "How many history entries make a package plainly `active`. Derived\n\
+                     from the size of your history by default — one per thousand recorded\n\
+                     command invocations, clamped to 3..50 — which is almost always what\n\
+                     you want."
     )]
-    only: Option<String>,
+    active_hits: Option<u32>,
+}
 
+#[derive(Subcommand)]
+enum Command {
     /// Print a removal script to review, instead of a report
-    #[arg(
-        long,
-        long_help = "Emit a shell script that uninstalls the selected packages, with the\n\
-                     evidence for each one kept as a comment. It is printed, never run:\n\
-                     redirect it to a file, delete the lines you disagree with, then run\n\
-                     it yourself. Defaults to `unused`; combine with --only for another\n\
-                     category."
+    #[command(
+        long_about = "Emit a shell script that uninstalls the selected packages, with the\n\
+                      evidence behind each verdict kept as a comment.\n\n\
+                      It is printed, never run: redirect it to a file, delete the lines\n\
+                      you disagree with, then run it yourself. Some verdicts rest on\n\
+                      guessed binary names, and every signal has a documented blind spot,\n\
+                      so the final call stays yours.\n\n\
+                      Covers the `unused` set by default; use --only for another category."
     )]
-    uninstall_script: bool,
-
-    /// Emit JSON instead of a human report
-    #[arg(long, long_help = "Emit JSON on stdout. Honours --only.")]
-    json: bool,
+    Clean,
 
     /// Generate a shell completion script
-    #[arg(
-        long,
-        value_name = "SHELL",
-        long_help = "Write a completion script for the given shell to stdout, then exit.\n\
-                     Supported: bash, zsh, fish, elvish, powershell."
-    )]
-    completions: Option<Shell>,
+    Completions {
+        /// bash, zsh, fish, elvish or powershell
+        #[arg(value_name = "SHELL")]
+        shell: Shell,
+    },
 }
 
 /// Optional `~/.config/shelfware/config.toml`. Exists so the ignore list —
@@ -206,8 +231,8 @@ struct Cli {
 #[derive(Deserialize, Default)]
 #[serde(default)]
 struct Config {
+    since: Option<String>,
     active_hits: Option<u32>,
-    stale_days: Option<u64>,
     managers: Option<Vec<String>>,
     ignore: Vec<String>,
 }
@@ -243,7 +268,7 @@ fn main() -> Result<()> {
     let cli = Cli::parse();
 
     // Completions describe the CLI itself, so nothing needs inspecting.
-    if let Some(shell) = cli.completions {
+    if let Some(Command::Completions { shell }) = cli.command {
         let mut cmd = Cli::command();
         let name = cmd.get_name().to_string();
         clap_complete::generate(shell, &mut cmd, name, &mut std::io::stdout());
@@ -252,18 +277,10 @@ fn main() -> Result<()> {
 
     let config = Config::load();
     let now = SystemTime::now();
-    let defaults = Thresholds::default();
 
-    let thresholds = Thresholds {
-        active_hits: cli
-            .active_hits
-            .or(config.active_hits)
-            .unwrap_or(defaults.active_hits),
-        stale_days: cli
-            .stale_days
-            .or(config.stale_days)
-            .unwrap_or(defaults.stale_days),
-    };
+    let since = cli.since.or(config.since);
+    let stale_days = classify::parse_days(since.as_deref().unwrap_or(DEFAULT_SINCE))
+        .map_err(|e| anyhow::anyhow!(e))?;
 
     let managers = cli
         .managers
@@ -287,6 +304,13 @@ fn main() -> Result<()> {
     };
 
     let counts = usage_counts(&cli.history);
+    let thresholds = Thresholds {
+        active_hits: cli.active_hits.or(config.active_hits).unwrap_or_else(|| {
+            classify::auto_active_hits(counts.values().map(|n| *n as usize).sum())
+        }),
+        stale_days,
+    };
+
     let mentions = signals::shell_config_mentions();
 
     let mut assessments: Vec<Assessment> = inventory::collect(&managers)
@@ -311,12 +335,10 @@ fn main() -> Result<()> {
             .then(a.package.name.cmp(&b.package.name))
     });
 
-    if cli.uninstall_script {
-        report::uninstall_script(&assessments, now, only);
-    } else if cli.json {
-        println!("{}", report::json(&assessments, now, only));
-    } else {
-        report::text(&assessments, now, cli.all, only);
+    match cli.command {
+        Some(Command::Clean) => report::uninstall_script(&assessments, now, only),
+        _ if cli.json => println!("{}", report::json(&assessments, now, only)),
+        _ => report::text(&assessments, now, cli.all, only),
     }
     Ok(())
 }
