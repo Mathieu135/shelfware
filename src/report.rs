@@ -34,7 +34,7 @@ impl Style {
     }
 }
 
-pub fn text(assessments: &[Assessment], now: SystemTime, detailed: bool) {
+pub fn text(assessments: &[Assessment], now: SystemTime, detailed: bool, only: Option<Verdict>) {
     let s = Style::detect();
 
     println!(
@@ -68,9 +68,13 @@ pub fn text(assessments: &[Assessment], now: SystemTime, detailed: bool) {
         .clamp(20, 44);
 
     for verdict in Verdict::ALL {
-        // Active and indirect packages are the ones you keep; listing all of
-        // them buries the handful you can act on.
-        if !detailed && !verdict.is_removal_candidate() && verdict != Verdict::Integration {
+        if let Some(wanted) = only {
+            if verdict != wanted {
+                continue;
+            }
+        } else if !detailed && !verdict.is_removal_candidate() && verdict != Verdict::Integration {
+            // Active and indirect packages are the ones you keep; listing all
+            // of them buries the handful you can act on.
             continue;
         }
         let group: Vec<&Assessment> = assessments
@@ -100,6 +104,11 @@ pub fn text(assessments: &[Assessment], now: SystemTime, detailed: bool) {
             );
         }
         println!();
+    }
+
+    // Pointless when the reader explicitly asked for another verdict.
+    if only.is_some_and(|v| v != Verdict::Unused) {
+        return;
     }
 
     let candidates: Vec<&str> = assessments
@@ -162,9 +171,10 @@ fn ago(then: SystemTime, now: SystemTime) -> String {
     }
 }
 
-pub fn json(assessments: &[Assessment], now: SystemTime) -> Value {
+pub fn json(assessments: &[Assessment], now: SystemTime, only: Option<Verdict>) -> Value {
     let packages: Vec<Value> = assessments
         .iter()
+        .filter(|a| only.is_none_or(|wanted| a.verdict == wanted))
         .map(|a| {
             json!({
                 "name": a.package.name,

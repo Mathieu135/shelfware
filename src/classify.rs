@@ -39,6 +39,12 @@ impl Verdict {
         }
     }
 
+    pub fn from_label(label: &str) -> Option<Self> {
+        Self::ALL
+            .into_iter()
+            .find(|v| v.label() == label.to_lowercase())
+    }
+
     pub fn headline(self) -> &'static str {
         match self {
             Verdict::Active => "Typed regularly at your prompt",

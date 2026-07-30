@@ -147,10 +147,18 @@ fn main() -> Result<()> {
         })
         .collect();
 
-    if let Some(only) = &cli.only {
-        let wanted = only.to_lowercase();
-        assessments.retain(|a| a.verdict.label() == wanted);
-    }
+    // Kept as a display filter rather than applied to the data: the summary
+    // counts stay honest about the whole inventory even when one verdict is
+    // singled out.
+    let only = match &cli.only {
+        Some(label) => match Verdict::from_label(label) {
+            Some(verdict) => Some(verdict),
+            None => anyhow::bail!(
+                "unknown verdict `{label}`; expected one of: active, indirect, rare, integration, unused"
+            ),
+        },
+        None => None,
+    };
 
     // Best verdict first between sections, busiest package first inside one.
     assessments.sort_by(|a, b| {
@@ -161,9 +169,9 @@ fn main() -> Result<()> {
     });
 
     if cli.json {
-        println!("{}", report::json(&assessments, now));
+        println!("{}", report::json(&assessments, now, only));
     } else {
-        report::text(&assessments, now, cli.all);
+        report::text(&assessments, now, cli.all, only);
     }
     Ok(())
 }
