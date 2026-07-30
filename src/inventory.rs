@@ -102,7 +102,10 @@ fn brew() -> Vec<Package> {
     let Some(leaves) = run("brew", &["leaves"]) else {
         return Vec::new();
     };
+    parse_brew(&leaves, &prefix)
+}
 
+fn parse_brew(leaves: &str, prefix: &Path) -> Vec<Package> {
     leaves
         .lines()
         .map(str::trim)
@@ -126,7 +129,10 @@ fn cargo() -> Vec<Package> {
     let Some(out) = run("cargo", &["install", "--list"]) else {
         return Vec::new();
     };
-    let bin_dir = cargo_bin_dir();
+    parse_cargo(&out, cargo_bin_dir().as_deref())
+}
+
+fn parse_cargo(out: &str, bin_dir: Option<&Path>) -> Vec<Package> {
     let mut packages: Vec<Package> = Vec::new();
 
     for line in out.lines() {
@@ -137,7 +143,7 @@ fn cargo() -> Vec<Package> {
         }
         if indented {
             if let Some(pkg) = packages.last_mut() {
-                pkg.binaries.push(named(trimmed, bin_dir.as_deref()));
+                pkg.binaries.push(named(trimmed, bin_dir));
             }
         } else if let Some(name) = trimmed.strip_suffix(':') {
             let name = name.split_whitespace().next().unwrap_or(name);
@@ -156,6 +162,10 @@ fn uv() -> Vec<Package> {
     let Some(out) = run("uv", &["tool", "list"]) else {
         return Vec::new();
     };
+    parse_uv(&out)
+}
+
+fn parse_uv(out: &str) -> Vec<Package> {
     let mut packages: Vec<Package> = Vec::new();
 
     for line in out.lines() {
@@ -188,7 +198,11 @@ fn pipx() -> Vec<Package> {
     let Some(out) = run("pipx", &["list", "--json"]) else {
         return Vec::new();
     };
-    let Ok(json) = serde_json::from_str::<Value>(&out) else {
+    parse_pipx(&out)
+}
+
+fn parse_pipx(out: &str) -> Vec<Package> {
+    let Ok(json) = serde_json::from_str::<Value>(out) else {
         return Vec::new();
     };
     let Some(venvs) = json.get("venvs").and_then(Value::as_object) else {
@@ -224,7 +238,11 @@ fn npm() -> Vec<Package> {
     let Some(out) = run("npm", &["ls", "-g", "--depth=0", "--json"]) else {
         return Vec::new();
     };
-    let Ok(json) = serde_json::from_str::<Value>(&out) else {
+    parse_npm(&out)
+}
+
+fn parse_npm(out: &str) -> Vec<Package> {
+    let Ok(json) = serde_json::from_str::<Value>(out) else {
         return Vec::new();
     };
     let Some(deps) = json.get("dependencies").and_then(Value::as_object) else {
@@ -328,6 +346,100 @@ fn run(bin: &str, args: &[&str]) -> Option<String> {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    fn bin_names(pkg: &Package) -> Vec<&str> {
+        pkg.binaries.iter().map(|b| b.name.as_str()).collect()
+    }
+
+    #[test]
+    fn parses_cargo_install_list() {
+        let out = "cargo-tauri v2.9.4:\n    cargo-tauri\nripgrep v14.1.0:\n    rg\n";
+        let pkgs = parse_cargo(out, None);
+
+        assert_eq!(pkgs.len(), 2);
+        assert_eq!(pkgs[0].name, "cargo-tauri");
+        // The reason this mapping exists at all: the package is `ripgrep`,
+        // but what you type — and what the history records — is `rg`.
+        assert_eq!(pkgs[1].name, "ripgrep");
+        assert_eq!(bin_names(&pkgs[1]), ["rg"]);
+    }
+
+    #[test]
+    fn cargo_accepts_tab_indentation_and_several_binaries() {
+        let pkgs = parse_cargo("coreutils v0.1.0:\n\tls\n\tcat\n", None);
+        assert_eq!(bin_names(&pkgs[0]), ["ls", "cat"]);
+    }
+
+    #[test]
+    fn parses_uv_tool_list() {
+        let out = "ruff v0.5.0\n- ruff\nhttpie v3.2.0\n- http\n- https\n";
+        let pkgs = parse_uv(out);
+
+        assert_eq!(pkgs.len(), 2);
+        assert_eq!(pkgs[1].name, "httpie");
+        assert_eq!(bin_names(&pkgs[1]), ["http", "https"]);
+    }
+
+    #[test]
+    fn parses_pipx_apps() {
+        let out = r#"{"venvs":{"ansible-core":{"metadata":{"main_package":
+                     {"apps":["ansible","ansible-playbook"]}}}}}"#;
+        let pkgs = parse_pipx(out);
+
+        assert_eq!(pkgs.len(), 1);
+        assert_eq!(pkgs[0].name, "ansible-core");
+        assert_eq!(bin_names(&pkgs[0]), ["ansible", "ansible-playbook"]);
+    }
+
+    #[test]
+    fn pipx_falls_back_to_the_package_name_when_apps_are_missing() {
+        let pkgs = parse_pipx(r#"{"venvs":{"sometool":{"metadata":{}}}}"#);
+        assert_eq!(bin_names(&pkgs[0]), ["sometool"]);
+    }
+
+    #[test]
+    fn parses_npm_globals_and_drops_npm_itself() {
+        let out = r#"{"dependencies":{"npm":{},"typescript":{},"@scope/some-tool":{}}}"#;
+        let pkgs = parse_npm(out);
+        let names: Vec<&str> = pkgs.iter().map(|p| p.name.as_str()).collect();
+
+        // npm installs itself globally; proposing its removal would be absurd.
+        assert!(!names.contains(&"npm"));
+        assert_eq!(names.len(), 2);
+
+        // Scoped packages are *guessed* to provide the unscoped name. This is
+        // the weakest mapping in the tool, and `clean` warns about it.
+        let scoped = pkgs.iter().find(|p| p.name == "@scope/some-tool").unwrap();
+        assert_eq!(bin_names(scoped), ["some-tool"]);
+    }
+
+    #[test]
+    fn parses_brew_leaves_including_tapped_formulae() {
+        let pkgs = parse_brew("git\n\nhashicorp/tap/vault\n", Path::new("/nonexistent"));
+
+        assert_eq!(pkgs.len(), 2, "blank lines are not packages");
+        assert_eq!(pkgs[1].name, "hashicorp/tap/vault");
+        assert_eq!(pkgs[1].short_name(), "vault");
+    }
+
+    /// A package manager changing its output format should make this tool
+    /// report nothing, never crash and never invent packages.
+    #[test]
+    fn unexpected_output_degrades_quietly() {
+        assert!(parse_pipx("not json at all").is_empty());
+        assert!(parse_npm("{}").is_empty());
+        assert!(parse_npm("<html>error</html>").is_empty());
+        assert!(parse_cargo("", None).is_empty());
+        assert!(parse_uv("").is_empty());
+        assert!(parse_brew("   \n\n", Path::new("/nonexistent")).is_empty());
+    }
+
+    /// Binaries listed before any package header have nothing to attach to.
+    #[test]
+    fn orphan_binary_lines_are_ignored() {
+        assert!(parse_cargo("    rg\n", None).is_empty());
+        assert!(parse_uv("- ruff\n").is_empty());
+    }
 
     #[test]
     fn short_name_strips_namespaces() {
