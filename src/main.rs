@@ -15,7 +15,7 @@ use clap_complete::Shell;
 use serde::Deserialize;
 
 use classify::{Signals, Thresholds, Verdict};
-use inventory::Package;
+use inventory::{Manager, Package};
 
 /// A package plus the evidence we gathered about it.
 pub struct Assessment {
@@ -148,7 +148,7 @@ struct Cli {
                      integration or unused. Summary counts still describe the whole\n\
                      inventory. With `clean`, selects which category to remove."
     )]
-    only: Option<String>,
+    only: Option<Verdict>,
 
     /// Package managers to inspect
     #[arg(
@@ -162,7 +162,7 @@ struct Cli {
                      limited to `brew leaves`, so dependencies pulled in by something\n\
                      else are never proposed for removal."
     )]
-    managers: Option<Vec<String>>,
+    managers: Option<Vec<Manager>>,
 
     /// Packages to leave out entirely
     #[arg(
@@ -183,6 +183,7 @@ struct Cli {
         value_name = "PATH",
         global = true,
         hide_short_help = true,
+        value_hint = clap::ValueHint::FilePath,
         long_help = "Read these history sources instead of auto-detecting. A path ending\n\
                      in .db is opened as an Atuin database, anything else is parsed as a\n\
                      plain history file. Repeatable."
@@ -233,7 +234,7 @@ enum Command {
 struct Config {
     since: Option<String>,
     active_hits: Option<u32>,
-    managers: Option<Vec<String>>,
+    managers: Option<Vec<Manager>>,
     ignore: Vec<String>,
 }
 
@@ -285,23 +286,15 @@ fn main() -> Result<()> {
     let managers = cli
         .managers
         .or(config.managers)
-        .unwrap_or_else(|| inventory::MANAGERS.iter().map(|m| m.to_string()).collect());
+        .unwrap_or_else(|| Manager::ALL.to_vec());
 
     let mut ignore = config.ignore;
     ignore.extend(cli.ignore);
 
     // Kept as a display filter rather than applied to the data: the summary
     // counts stay honest about the whole inventory even when one verdict is
-    // singled out.
-    let only = match &cli.only {
-        Some(label) => match Verdict::from_label(label) {
-            Some(verdict) => Some(verdict),
-            None => anyhow::bail!(
-                "unknown verdict `{label}`; expected one of: active, indirect, rare, integration, unused"
-            ),
-        },
-        None => None,
-    };
+    // singled out. Validation is clap's job now that it is a typed value.
+    let only = cli.only;
 
     let counts = usage_counts(&cli.history);
     let thresholds = Thresholds {
@@ -344,7 +337,7 @@ fn main() -> Result<()> {
 }
 
 fn is_ignored(pkg: &Package, ignore: &[String]) -> bool {
-    let short = pkg.name.rsplit('/').next().unwrap_or(&pkg.name);
+    let short = pkg.short_name();
     ignore
         .iter()
         .any(|i| i == &pkg.name || i == short || pkg.binaries.iter().any(|b| &b.name == i))
@@ -367,7 +360,7 @@ fn gather(pkg: &Package, counts: &HashMap<String, u32>, mentions: &HashSet<Strin
         .filter_map(signals::last_exec)
         .max();
 
-    let short = pkg.name.rsplit('/').next().unwrap_or(&pkg.name);
+    let short = pkg.short_name();
     let configured = mentions.contains(&pkg.name)
         || mentions.contains(short)
         || pkg.binaries.iter().any(|b| mentions.contains(&b.name));

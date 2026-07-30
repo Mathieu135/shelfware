@@ -7,6 +7,7 @@ use serde_json::{Value, json};
 
 use crate::Assessment;
 use crate::classify::Verdict;
+use crate::inventory::Manager;
 
 struct Style {
     bold: &'static str,
@@ -96,7 +97,7 @@ pub fn text(assessments: &[Assessment], now: SystemTime, detailed: bool, only: O
             println!(
                 "  {:<width$} {:<7} {}{}{}",
                 a.package.name,
-                a.package.manager,
+                a.package.manager.as_str(),
                 s.dim,
                 evidence(a, now),
                 s.reset,
@@ -163,7 +164,7 @@ pub fn uninstall_script(assessments: &[Assessment], now: SystemTime, only: Optio
 
     for a in group {
         println!("# {} — {}", a.package.name, evidence(a, now));
-        if a.package.manager == "npm" {
+        if a.package.manager == Manager::Npm {
             println!("#   NOTE: npm binary names are guessed, so \"never typed\" is weak");
             println!("#   evidence here. Confirm this package is genuinely idle first.");
         }
@@ -171,7 +172,7 @@ pub fn uninstall_script(assessments: &[Assessment], now: SystemTime, only: Optio
             Some(cmd) => println!("{cmd}"),
             None => println!(
                 "#   no automatic uninstall for manager `{}`",
-                a.package.manager
+                a.package.manager.as_str()
             ),
         }
         println!();
@@ -181,18 +182,17 @@ pub fn uninstall_script(assessments: &[Assessment], now: SystemTime, only: Optio
 fn uninstall_command(a: &Assessment) -> Option<String> {
     let name = &a.package.name;
     Some(match a.package.manager {
-        "brew" => format!("brew uninstall {name}"),
-        "cargo" => format!("cargo uninstall {name}"),
-        "pipx" => format!("pipx uninstall {name}"),
-        "uv" => format!("uv tool uninstall {name}"),
-        "npm" => format!("npm uninstall -g {name}"),
+        Manager::Brew => format!("brew uninstall {name}"),
+        Manager::Cargo => format!("cargo uninstall {name}"),
+        Manager::Pipx => format!("pipx uninstall {name}"),
+        Manager::Uv => format!("uv tool uninstall {name}"),
+        Manager::Npm => format!("npm uninstall -g {name}"),
         // `go install` keeps no manifest, so deleting the binary is the
         // uninstall.
-        "go" => format!(
+        Manager::Go => format!(
             "rm -f {}",
             a.package.binaries.first()?.path.as_ref()?.display()
         ),
-        _ => return None,
     })
 }
 
@@ -235,7 +235,7 @@ pub fn json(assessments: &[Assessment], now: SystemTime, only: Option<Verdict>) 
         .map(|a| {
             json!({
                 "name": a.package.name,
-                "manager": a.package.manager,
+                "manager": a.package.manager.as_str(),
                 "verdict": a.verdict.label(),
                 "interactive_hits": a.signals.interactive_hits,
                 "last_exec_days_ago": a.signals.last_exec.map(|t| {

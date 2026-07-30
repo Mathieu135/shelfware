@@ -19,23 +19,73 @@ pub struct Binary {
 #[derive(Debug, Clone)]
 pub struct Package {
     pub name: String,
-    pub manager: &'static str,
+    pub manager: Manager,
     pub binaries: Vec<Binary>,
 }
 
-pub const MANAGERS: &[&str] = &["brew", "cargo", "uv", "pipx", "npm", "go"];
+impl Package {
+    /// The name the package is known by locally. See [`short_name`].
+    pub fn short_name(&self) -> &str {
+        short_name(&self.name)
+    }
+}
 
-pub fn collect(managers: &[String]) -> Vec<Package> {
+/// Strip the namespace from a package name: `org/tap/tool` is installed as
+/// `tool`, and the npm package `@scope/tool` provides `tool`.
+///
+/// One definition, because this is the name used to find a package's install
+/// directory, to match it against usage, and to match it against the ignore
+/// list — three places that must not be allowed to disagree.
+pub fn short_name(name: &str) -> &str {
+    name.rsplit('/').next().unwrap_or(name)
+}
+
+/// An enum rather than a string so that shells can complete the values, and
+/// so that adding a manager makes the compiler point at every place that has
+/// to handle it — uninstall commands in particular.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, clap::ValueEnum, serde::Deserialize)]
+#[serde(rename_all = "lowercase")]
+pub enum Manager {
+    Brew,
+    Cargo,
+    Uv,
+    Pipx,
+    Npm,
+    Go,
+}
+
+impl Manager {
+    pub const ALL: [Manager; 6] = [
+        Manager::Brew,
+        Manager::Cargo,
+        Manager::Uv,
+        Manager::Pipx,
+        Manager::Npm,
+        Manager::Go,
+    ];
+
+    pub fn as_str(self) -> &'static str {
+        match self {
+            Manager::Brew => "brew",
+            Manager::Cargo => "cargo",
+            Manager::Uv => "uv",
+            Manager::Pipx => "pipx",
+            Manager::Npm => "npm",
+            Manager::Go => "go",
+        }
+    }
+}
+
+pub fn collect(managers: &[Manager]) -> Vec<Package> {
     let mut packages = Vec::new();
     for manager in managers {
-        packages.extend(match manager.as_str() {
-            "brew" => brew(),
-            "cargo" => cargo(),
-            "uv" => uv(),
-            "pipx" => pipx(),
-            "npm" => npm(),
-            "go" => go(),
-            _ => Vec::new(),
+        packages.extend(match manager {
+            Manager::Brew => brew(),
+            Manager::Cargo => cargo(),
+            Manager::Uv => uv(),
+            Manager::Pipx => pipx(),
+            Manager::Npm => npm(),
+            Manager::Go => go(),
         });
     }
     packages
@@ -59,12 +109,12 @@ fn brew() -> Vec<Package> {
         .filter(|name| !name.is_empty())
         .map(|name| {
             // Tapped formulae are named `org/tap/tool`, installed as `tool`.
-            let short = name.rsplit('/').next().unwrap_or(name);
+            let short = short_name(name);
             let binaries = bins_in(&prefix.join("opt").join(short).join("bin"))
                 .unwrap_or_else(|| vec![resolve(short)]);
             Package {
                 name: name.to_string(),
-                manager: "brew",
+                manager: Manager::Brew,
                 binaries,
             }
         })
@@ -93,7 +143,7 @@ fn cargo() -> Vec<Package> {
             let name = name.split_whitespace().next().unwrap_or(name);
             packages.push(Package {
                 name: name.to_string(),
-                manager: "cargo",
+                manager: Manager::Cargo,
                 binaries: Vec::new(),
             });
         }
@@ -123,7 +173,7 @@ fn uv() -> Vec<Package> {
                 let name = trimmed.split_whitespace().next().unwrap_or(trimmed);
                 packages.push(Package {
                     name: name.to_string(),
-                    manager: "uv",
+                    manager: Manager::Uv,
                     binaries: Vec::new(),
                 });
             }
@@ -161,7 +211,7 @@ fn pipx() -> Vec<Package> {
                 .unwrap_or_else(|| vec![resolve(name)]);
             Package {
                 name: name.clone(),
-                manager: "pipx",
+                manager: Manager::Pipx,
                 binaries: apps,
             }
         })
@@ -184,10 +234,10 @@ fn npm() -> Vec<Package> {
     deps.keys()
         .filter(|name| name.as_str() != "npm")
         .map(|name| {
-            let short = name.rsplit('/').next().unwrap_or(name);
+            let short = short_name(name);
             Package {
                 name: name.clone(),
-                manager: "npm",
+                manager: Manager::Npm,
                 binaries: vec![resolve(short)],
             }
         })
@@ -209,7 +259,7 @@ fn go() -> Vec<Package> {
         .into_iter()
         .map(|bin| Package {
             name: bin.name.clone(),
-            manager: "go",
+            manager: Manager::Go,
             binaries: vec![bin],
         })
         .collect()
@@ -273,4 +323,36 @@ fn run(bin: &str, args: &[&str]) -> Option<String> {
     out.status
         .success()
         .then(|| String::from_utf8_lossy(&out.stdout).into_owned())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn short_name_strips_namespaces() {
+        // A tapped Homebrew formula, installed under its bare name.
+        assert_eq!(short_name("hashicorp/tap/vault"), "vault");
+        // A scoped npm package.
+        assert_eq!(short_name("@mermaid-js/mermaid-cli"), "mermaid-cli");
+        // Anything else is already short.
+        assert_eq!(short_name("ripgrep"), "ripgrep");
+    }
+
+    /// Same reasoning as the verdict labels: two spellings of one name, kept
+    /// honest by a test rather than by discipline.
+    #[test]
+    fn manager_names_match_the_values_the_cli_accepts() {
+        use clap::ValueEnum;
+        for manager in Manager::ALL {
+            let cli_value = manager.to_possible_value().expect("manager is selectable");
+            assert_eq!(manager.as_str(), cli_value.get_name());
+        }
+    }
+
+    #[test]
+    fn all_lists_every_manager() {
+        use clap::ValueEnum;
+        assert_eq!(Manager::ALL.len(), Manager::value_variants().len());
+    }
 }

@@ -11,7 +11,7 @@ use std::time::{Duration, SystemTime};
 
 /// What we think of a package, in decreasing order of confidence that it earns
 /// its disk space.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, clap::ValueEnum)]
 pub enum Verdict {
     Active,
     Indirect,
@@ -37,12 +37,6 @@ impl Verdict {
             Verdict::Integration => "integration",
             Verdict::Unused => "unused",
         }
-    }
-
-    pub fn from_label(label: &str) -> Option<Self> {
-        Self::ALL
-            .into_iter()
-            .find(|v| v.label() == label.to_lowercase())
     }
 
     pub fn headline(self) -> &'static str {
@@ -242,6 +236,24 @@ mod tests {
             classify(&s, Thresholds::default(), now()),
             Verdict::Indirect
         );
+    }
+
+    /// `label()` and the value clap accepts on the command line are two
+    /// spellings of the same name. They cannot be merged cheaply, so this
+    /// fails the build if they ever drift apart.
+    #[test]
+    fn labels_match_the_values_the_cli_accepts() {
+        use clap::ValueEnum;
+        for verdict in Verdict::ALL {
+            let cli_value = verdict.to_possible_value().expect("verdict is selectable");
+            assert_eq!(verdict.label(), cli_value.get_name());
+        }
+    }
+
+    #[test]
+    fn all_lists_every_verdict() {
+        use clap::ValueEnum;
+        assert_eq!(Verdict::ALL.len(), Verdict::value_variants().len());
     }
 
     #[test]
