@@ -74,6 +74,37 @@ shelfware --stale-days 90          # "recent" means the last quarter
 shelfware --active-hits 5          # lower the bar for "clearly alive"
 ```
 
+`-h` prints a one-screen summary; `--help` prints the full manual, including
+what each verdict means, what each signal can and cannot see, and worked
+examples.
+
+## Removing things
+
+```sh
+shelfware --uninstall-script > cleanup.sh
+```
+
+This writes a shell script that uninstalls the packages in question, keeping
+the evidence for each one as a comment above its command. It is printed, never
+executed: redirect it, delete the lines you disagree with, then run it
+yourself.
+
+That separation is deliberate. Some verdicts rest on guessed binary names, and
+every signal here has a documented blind spot — an audit tool has no business
+uninstalling anything on that basis. Defaults to the `unused` set; pair it with
+`--only` for another category.
+
+## Shell completion
+
+```sh
+shelfware --completions zsh  > ~/.config/zsh/completions/_shelfware
+shelfware --completions bash > ~/.local/share/bash-completion/completions/shelfware
+shelfware --completions fish > ~/.config/fish/completions/shelfware.fish
+```
+
+`elvish` and `powershell` are supported too. For zsh, make sure the directory
+is on your `fpath` before `compinit` runs.
+
 Supported inventories: Homebrew (`brew leaves` only, so dependencies are never
 suggested for removal), cargo, uv, pipx, npm globals, and `go install`
 binaries. A package manager you do not have contributes nothing and is not an
