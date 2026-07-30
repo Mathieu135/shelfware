@@ -1,0 +1,14 @@
+/target
+
+# AI tooling
+.claude/
+.cursor/
+.aider*
+.copilot/
+.windsurf/
+.codeium/
+.continue/
+.bolt/
+
+# OS
+.DS_Store
