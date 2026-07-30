@@ -1,0 +1,65 @@
+name: Wrong verdict
+description: shelfware misclassified a package you do (or do not) use
+labels: ["wrong-verdict"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        This is the most useful report this project can get. Every verdict is
+        backed by evidence printed on its row — that line tells us which
+        signal went wrong.
+
+  - type: textarea
+    id: row
+    attributes:
+      label: The row as printed
+      description: Copy the whole line, including the evidence after the manager name.
+      placeholder: "ripgrep    brew    never typed · never run"
+      render: text
+    validations:
+      required: true
+
+  - type: textarea
+    id: reality
+    attributes:
+      label: How you actually use it
+      description: >
+        Typed at the prompt? Called by a Makefile, a git hook, CI, an editor,
+        a coding agent? Only inside a container? Only on another machine?
+    validations:
+      required: true
+
+  - type: dropdown
+    id: os
+    attributes:
+      label: Operating system
+      options:
+        - macOS
+        - Linux
+        - Other
+    validations:
+      required: true
+
+  - type: dropdown
+    id: atime
+    attributes:
+      label: Is the filesystem mounted `noatime`?
+      description: >
+        On Linux, run `findmnt -no OPTIONS /` and look for `noatime`. This
+        matters a lot — without access times, one of the four signals is
+        completely silent.
+      options:
+        - "No"
+        - "Yes"
+        - "Not sure"
+        - "macOS (not applicable)"
+    validations:
+      required: true
+
+  - type: input
+    id: version
+    attributes:
+      label: Version
+      description: Output of `shelfware --version`
+    validations:
+      required: true

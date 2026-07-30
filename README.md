@@ -103,6 +103,30 @@ binaries. A package manager you do not have contributes nothing.
 
 `--help` carries the same material in the terminal; `-h` stays a single screen.
 
+## How this was built
+
+This was vibe coded: designed and written in a single pair-programming session
+with Claude, from the first idea to the published repository. Better said up
+front than inferred from the commit style.
+
+What that means concretely:
+
+- The numbers in this README come from a real audit of a real machine, not
+  from an illustration. The tool was built by measuring first, and the
+  classification rules exist because the naive version got 7 of 13 verdicts
+  wrong on that machine.
+- Design decisions were argued before being implemented. The comments in the
+  source explain *why* a rule exists, which is usually "because the obvious
+  implementation was wrong". `docs/how-it-works.md` is the long version.
+- 27 tests, clippy clean at `-D warnings`, CI on Linux and macOS plus an MSRV
+  check.
+- It has been used by one person, on one operating system. **The Linux paths
+  are untested in anger**, and the access-time signal behaves differently
+  there — `noatime` mounts silence it entirely.
+
+Review it the way you would review code from a stranger, because that is what
+it is.
+
 ## Limitations
 
 - **Access times can be disabled.** On Linux, `noatime` mounts give no signal

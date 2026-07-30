@@ -25,6 +25,11 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - `--json` output for scripting.
 - Full documentation in `docs/`, mirrored in `--help`.
 
+- Shell completion proposes argument *values*, not just flag names: verdicts
+  for `--only`, package managers for `--managers`, file paths for `--history`.
+- Project documentation for contributors: `CONTRIBUTING.md`, `SECURITY.md`
+  with a stated threat model, a code of conduct, and issue templates.
+
 ### Notes
 
 The activity threshold calibrates itself to the size of your history — one per

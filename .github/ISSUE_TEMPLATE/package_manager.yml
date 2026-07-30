@@ -1,0 +1,46 @@
+name: Package manager support
+description: Ask for a package manager that is not inventoried yet
+labels: ["enhancement", "package-manager"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Currently supported: brew, cargo, uv, pipx, npm globals, and
+        `go install` binaries.
+
+  - type: input
+    id: manager
+    attributes:
+      label: Which package manager
+      placeholder: "nix, apt, pacman, dnf, scoop, mise, asdf…"
+    validations:
+      required: true
+
+  - type: textarea
+    id: list
+    attributes:
+      label: How to list the packages a user explicitly asked for
+      description: >
+        Not every installed package — the ones the user chose. Suggesting the
+        removal of a dependency would be useless and dangerous.
+      render: shell
+    validations:
+      required: true
+
+  - type: textarea
+    id: binaries
+    attributes:
+      label: How to find the binaries a package provides
+      description: >
+        This is the part that decides whether verdicts will be trustworthy.
+        You type `rg`, never `ripgrep`. If the mapping can only be guessed,
+        say so — it will be documented and warned about, as npm is.
+      render: shell
+    validations:
+      required: true
+
+  - type: textarea
+    id: uninstall
+    attributes:
+      label: The uninstall command
+      render: shell
