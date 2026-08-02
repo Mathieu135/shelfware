@@ -1,10 +1,15 @@
 name: Release
 
-# Tagging v* is the only trigger: the tag is the release decision, and the
-# binaries below are what most people install instead of building from source.
+# Tagging v* is the release decision, and the binaries below are what most
+# people install instead of building from source.
+#
+# workflow_dispatch exercises the same build matrix without publishing
+# anything. Without it, a bumped action or a broken cross-build is only
+# discovered by tagging, which is the one moment it cannot be undone.
 on:
   push:
     tags: ["v*"]
+  workflow_dispatch:
 
 permissions:
   contents: read
@@ -60,6 +65,8 @@ jobs:
 
   release:
     needs: build
+    # A manual run stops here: it exists to prove the matrix still builds.
+    if: startsWith(github.ref, 'refs/tags/v')
     runs-on: ubuntu-latest
     permissions:
       contents: write
