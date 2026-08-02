@@ -1,24 +1,24 @@
 # shelfware
 
-Find the tools you installed and stopped using.
+**Find the tools you installed and stopped using.**
+
+[![CI](https://github.com/Mathieu135/shelfware/actions/workflows/ci.yml/badge.svg)](https://github.com/Mathieu135/shelfware/actions/workflows/ci.yml)
+[![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
+
+Every machine accumulates them: the CLI installed for one afternoon, the tool a
+tutorial told you to add, the runtime left over from a project that shipped two
+years ago. They take disk space, they slow down every upgrade, and you can no
+longer remember which of them you still need.
 
 `shelfware` cross-references what is installed on your machine against how you
-actually use it, then tells you what earns its disk space and what does not.
+actually use it, then tells you what earns its disk space and what does not. It
+inspects Homebrew, cargo, uv, pipx, npm globals and `go install` binaries,
+weighs four independent usage signals against each other, and prints the
+evidence behind every verdict so you can argue with it.
 
-```
-shelfware — 66 packages inspected
+It removes nothing. `shelfware clean` hands you a script to read.
 
-  active         11   Typed regularly at your prompt
-  indirect       44   Executed recently, but not by you typing it
-  rare            4   Typed occasionally, and not executed lately
-  integration     1   Never executed, but wired into your shell config
-  unused          6   No signal from any source — removal candidates
-
-UNUSED — No signal from any source — removal candidates
-  git-filter-repo     brew    never typed · last run 34d ago
-  pam-reattach        brew    never typed · last run 4mo ago
-  tauri-cli           cargo   never typed · last run 4mo ago
-```
+![The shelfware report: counts per verdict, then the packages worth a decision, each with the evidence behind its verdict](docs/media/report.svg)
 
 ## Why not just count your history
 
@@ -57,21 +57,50 @@ A package is only reported as removable when *all four* stay silent.
 
 ## Install
 
-Requires Rust 1.88+ and a C compiler (SQLite is built from source, so Atuin
-support needs no system library).
+### A prebuilt binary — no toolchain required
+
+Every release carries static Linux binaries and macOS ones, the latter unsigned.
+Pick your platform and drop it on your `PATH`:
+
+```sh
+# Linux, x86_64 — statically linked, so any distribution will do
+curl -fsSL https://github.com/Mathieu135/shelfware/releases/latest/download/shelfware-x86_64-unknown-linux-musl.tar.gz | tar xz
+sudo install shelfware-*/shelfware /usr/local/bin/
+```
+
+```sh
+# Linux, arm64
+curl -fsSL https://github.com/Mathieu135/shelfware/releases/latest/download/shelfware-aarch64-unknown-linux-musl.tar.gz | tar xz
+sudo install shelfware-*/shelfware /usr/local/bin/
+```
+
+```sh
+# macOS, Apple silicon — swap aarch64 for x86_64 on an Intel Mac
+curl -fsSL https://github.com/Mathieu135/shelfware/releases/latest/download/shelfware-aarch64-apple-darwin.tar.gz | tar xz
+sudo install shelfware-*/shelfware /usr/local/bin/
+```
+
+`SHA256SUMS` is attached to the same release if you want to check the download.
+
+### From crates.io
+
+Requires Rust 1.88+ and a C compiler — SQLite is compiled in, so Atuin support
+needs no system library.
 
 ```sh
 # Linux — install a compiler first if you have none
 sudo apt install build-essential      # or: dnf install gcc / pacman -S base-devel
-
-cargo install --git https://github.com/Mathieu135/shelfware
+cargo install shelfware
 ```
 
 ```sh
 # macOS
 xcode-select --install
-cargo install --git https://github.com/Mathieu135/shelfware
+cargo install shelfware
 ```
+
+To follow `main` rather than a release, use
+`cargo install --git https://github.com/Mathieu135/shelfware`.
 
 ## Use
 
@@ -91,6 +120,8 @@ shelfware --since 6mo
 `shelfware clean` prints a script rather than removing anything — you review
 it, delete what you disagree with, and run it yourself. Some verdicts rest on
 guessed binary names, so the final call stays yours.
+
+![shelfware clean: a bash script, one uninstall command per package, each preceded by the evidence and by a warning where the evidence is weak](docs/media/clean.svg)
 
 Supported inventories: Homebrew (`brew leaves` only, so dependencies are never
 suggested for removal), cargo, uv, pipx, npm globals, and `go install`
@@ -118,7 +149,7 @@ What that means concretely:
 - Design decisions were argued before being implemented. The comments in the
   source explain *why* a rule exists, which is usually "because the obvious
   implementation was wrong". `docs/how-it-works.md` is the long version.
-- 27 tests, clippy clean at `-D warnings`, CI on Linux and macOS plus an MSRV
+- 36 tests, clippy clean at `-D warnings`, CI on Linux and macOS plus an MSRV
   check.
 - It has been used by one person, on one operating system. **The Linux paths
   are untested in anger**, and the access-time signal behaves differently

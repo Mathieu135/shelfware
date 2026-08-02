@@ -4,7 +4,7 @@ All notable changes to this project are documented here. The format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this project
 adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased]
+## [0.1.0] - 2026-08-02
 
 ### Added
 
@@ -24,11 +24,12 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   particularly `ignore`.
 - `--json` output for scripting.
 - Full documentation in `docs/`, mirrored in `--help`.
-
 - Shell completion proposes argument *values*, not just flag names: verdicts
   for `--only`, package managers for `--managers`, file paths for `--history`.
 - Project documentation for contributors: `CONTRIBUTING.md`, `SECURITY.md`
   with a stated threat model, a code of conduct, and issue templates.
+- Prebuilt binaries attached to every tag: static musl builds for Linux
+  x86_64 and arm64, plus macOS arm64 and x86_64, with `SHA256SUMS`.
 
 ### Notes
 
