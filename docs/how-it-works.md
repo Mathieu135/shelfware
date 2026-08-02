@@ -68,6 +68,13 @@ doing something, and that is enough to keep it off the removal list. A false
 positive here can only move a package from `unused` to `integration`, which
 errs toward keeping things.
 
+The cost of that choice is that `integration` is the least trustworthy of the
+five verdicts. The match is on a bare word, so a package whose name is also an
+ordinary word — `time`, `parallel`, `watch` — lands there as soon as that word
+appears anywhere in a startup file, for any reason. Read `integration` as "this
+name turns up in your shell config", not as "this is wired into your shell".
+The other four verdicts rest on something that was actually observed running.
+
 ### Aliases
 
 `alias cat='bat --paging=never'` means every `cat` you type is really a `bat`

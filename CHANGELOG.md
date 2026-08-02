@@ -4,6 +4,27 @@ All notable changes to this project are documented here. The format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this project
 adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.1.1] - 2026-08-02
+
+### Fixed
+
+- `shelfware clean` quotes paths and package names that need it. A `GOPATH`
+  containing a space produced an `rm -f` line that took two arguments instead
+  of one.
+
+### Changed
+
+- `--since 6m` is now rejected instead of silently meaning six *months*.
+  Everywhere else in a shell, `m` is minutes; being wrong by a factor of 43 200
+  without saying so was worse than asking. The error names `6mo` as the fix,
+  and `6mo`, `6w`, `30d`, `1y` and a bare number of days are unchanged.
+
+### Documentation
+
+- `docs/how-it-works.md` states that `integration` is the least trustworthy of
+  the five verdicts, since it matches a bare word in a startup file: a package
+  named `time`, `watch` or `parallel` lands there for any mention at all.
+
 ## [0.1.0] - 2026-08-02
 
 ### Added

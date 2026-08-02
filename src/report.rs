@@ -1,5 +1,6 @@
 //! Rendering. Two audiences: a human skimming a terminal, and a script.
 
+use std::borrow::Cow;
 use std::io::IsTerminal;
 use std::time::SystemTime;
 
@@ -180,7 +181,7 @@ pub fn uninstall_script(assessments: &[Assessment], now: SystemTime, only: Optio
 }
 
 fn uninstall_command(a: &Assessment) -> Option<String> {
-    let name = &a.package.name;
+    let name = quote(&a.package.name);
     Some(match a.package.manager {
         Manager::Brew => format!("brew uninstall {name}"),
         Manager::Cargo => format!("cargo uninstall {name}"),
@@ -189,11 +190,25 @@ fn uninstall_command(a: &Assessment) -> Option<String> {
         Manager::Npm => format!("npm uninstall -g {name}"),
         // `go install` keeps no manifest, so deleting the binary is the
         // uninstall.
-        Manager::Go => format!(
-            "rm -f {}",
-            a.package.binaries.first()?.path.as_ref()?.display()
-        ),
+        Manager::Go => {
+            let path = a.package.binaries.first()?.path.as_ref()?;
+            format!("rm -f {}", quote(&path.to_string_lossy()))
+        }
     })
+}
+
+/// Quote a word for the generated script, but only when it needs it.
+///
+/// A `GOPATH` with a space in it would otherwise emit an `rm -f` line that
+/// takes two arguments instead of one. Left unquoted when it is already safe,
+/// because this script exists to be read before it is run.
+fn quote(word: &str) -> Cow<'_, str> {
+    let safe = |c: char| c.is_ascii_alphanumeric() || "@%+=:,./-_".contains(c);
+    if !word.is_empty() && word.chars().all(safe) {
+        Cow::Borrowed(word)
+    } else {
+        Cow::Owned(format!("'{}'", word.replace('\'', r"'\''")))
+    }
 }
 
 /// One line of "why we said that", so a verdict can be argued with.
@@ -248,4 +263,54 @@ pub fn json(assessments: &[Assessment], now: SystemTime, only: Option<Verdict>) 
         .collect();
 
     json!({ "packages": packages })
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::inventory::Binary;
+    use std::path::PathBuf;
+
+    fn go_package(path: &str) -> Assessment {
+        Assessment {
+            package: crate::inventory::Package {
+                name: "tool".into(),
+                manager: Manager::Go,
+                binaries: vec![Binary {
+                    name: "tool".into(),
+                    path: Some(PathBuf::from(path)),
+                }],
+            },
+            signals: crate::classify::Signals::default(),
+            verdict: Verdict::Unused,
+        }
+    }
+
+    #[test]
+    fn ordinary_names_are_left_unquoted() {
+        // The script is meant to be read; quoting what needs no quoting is noise.
+        assert_eq!(quote("ripgrep"), "ripgrep");
+        assert_eq!(quote("@scope/some-tool"), "@scope/some-tool");
+        assert_eq!(quote("hashicorp/tap/vault"), "hashicorp/tap/vault");
+    }
+
+    #[test]
+    fn a_path_with_a_space_stays_one_argument() {
+        // Unquoted, this `rm -f` line would take two arguments instead of one.
+        let cmd = uninstall_command(&go_package("/Users/ada lovelace/go/bin/tool"))
+            .expect("go packages have an uninstall command");
+        assert_eq!(cmd, "rm -f '/Users/ada lovelace/go/bin/tool'");
+    }
+
+    #[test]
+    fn a_quote_in_a_path_cannot_end_the_quoting() {
+        assert_eq!(quote("it's"), r"'it'\''s'");
+    }
+
+    #[test]
+    fn a_go_binary_without_a_path_yields_no_command() {
+        let mut assessment = go_package("/tmp/tool");
+        assessment.package.binaries[0].path = None;
+        assert!(uninstall_command(&assessment).is_none());
+    }
 }

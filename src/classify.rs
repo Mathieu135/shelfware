@@ -88,14 +88,18 @@ impl Default for Thresholds {
 ///
 /// Exists so the one threshold users actually touch reads like a sentence
 /// instead of arithmetic.
+///
+/// A bare `m` is rejected rather than guessed at. Every other tool that takes
+/// a duration reads it as minutes, this one would have to read it as months,
+/// and being wrong by a factor of 43 200 in silence is worse than asking.
 pub fn parse_days(input: &str) -> Result<u64, String> {
     let s = input.trim().to_lowercase();
     if s.is_empty() {
         return Err("empty duration".into());
     }
 
-    // Longest suffix first: `mo` must win over `m`.
-    let (digits, per_unit) = [("mo", 30), ("y", 365), ("w", 7), ("d", 1), ("m", 30)]
+    // Longest suffix first: `mo` must win over any shorter match.
+    let (digits, per_unit) = [("mo", 30), ("y", 365), ("w", 7), ("d", 1)]
         .into_iter()
         .find_map(|(suffix, mult)| s.strip_suffix(suffix).map(|rest| (rest, mult)))
         .unwrap_or((s.as_str(), 1));
@@ -104,7 +108,16 @@ pub fn parse_days(input: &str) -> Result<u64, String> {
         .trim()
         .parse::<u64>()
         .map(|n| n * per_unit)
-        .map_err(|_| format!("invalid duration `{input}`; try 30d, 6mo or 1y"))
+        .map_err(|_| {
+            if s.ends_with('m') {
+                format!(
+                    "ambiguous duration `{input}`; write `{}mo` for months",
+                    &s[..s.len() - 1]
+                )
+            } else {
+                format!("invalid duration `{input}`; try 30d, 6mo or 1y")
+            }
+        })
 }
 
 /// How many times a tool must appear in history before it is plainly alive.
@@ -267,10 +280,14 @@ mod tests {
         assert_eq!(parse_days(" 6MO "), Ok(180));
     }
 
+    /// `6m` used to mean six months. Everywhere else in a shell it means six
+    /// minutes, so accepting it silently turned a typo into a 180-day window.
     #[test]
-    fn months_win_over_the_shorter_suffix() {
-        // `6mo` must not parse as 6 of whatever `o` would mean.
-        assert_eq!(parse_days("6mo"), parse_days("6m"));
+    fn a_bare_m_is_rejected_rather_than_guessed_at() {
+        let err = parse_days("6m").expect_err("`m` is ambiguous");
+        assert!(err.contains("6mo"), "the error must show the fix: {err}");
+        // The unambiguous spelling still works, and `mo` still beats `m`.
+        assert_eq!(parse_days("6mo"), Ok(180));
     }
 
     #[test]

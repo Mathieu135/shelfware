@@ -76,9 +76,12 @@ pub fn atuin_counts(db: &Path) -> Result<HashMap<String, u32>> {
         .with_context(|| format!("opening Atuin database at {}", db.display()))?;
 
     // `deleted_at` arrived in later Atuin schemas; fall back for older ones.
-    let sql = match conn.prepare("SELECT command FROM history WHERE deleted_at IS NULL") {
-        Ok(_) => "SELECT command FROM history WHERE deleted_at IS NULL",
-        Err(_) => "SELECT command FROM history",
+    const LIVE_ONLY: &str = "SELECT command FROM history WHERE deleted_at IS NULL";
+    const EVERYTHING: &str = "SELECT command FROM history";
+    let sql = if conn.prepare(LIVE_ONLY).is_ok() {
+        LIVE_ONLY
+    } else {
+        EVERYTHING
     };
 
     let mut stmt = conn.prepare(sql)?;
