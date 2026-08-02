@@ -58,11 +58,11 @@ shelfware — 66 packages inspected
   unused          6   No signal from any source — removal candidates
 
 UNUSED — No signal from any source — removal candidates
-  git-filter-repo    brew    never typed · last run 34d ago
-  pam-reattach       brew    never typed · last run 4mo ago
+  cargo-watch        cargo   never typed · last run 6mo ago
+  imagemagick        brew    never typed · last run 5mo ago
 
 Review these 2 first — no recent sign of use:
-  git-filter-repo pam-reattach
+  cargo-watch imagemagick
 ```
 
 The summary always describes the **whole** inventory. Below it, only the
@@ -72,8 +72,8 @@ use would bury the handful worth a decision. Add `--all` to see everything.
 Each row ends with its evidence:
 
 ```
-wakeonlan     brew    typed 5× · last run 4mo ago
-antidote      brew    never typed · never run · in shell config
+cloc          brew    typed 3× · last run 2mo ago
+starship      brew    never typed · never run · in shell config
 ```
 
 That is there so a verdict can be argued with rather than believed.
@@ -112,8 +112,8 @@ Writes a shell script instead of removing anything:
 # then run it. Nothing here executes on its own.
 set -euo pipefail
 
-# git-filter-repo — never typed · last run 34d ago
-brew uninstall git-filter-repo
+# cargo-watch — never typed · last run 6mo ago
+cargo uninstall cargo-watch
 
 # @scope/some-tool — never typed · never run
 #   NOTE: npm binary names are guessed, so "never typed" is weak
@@ -168,7 +168,7 @@ Optional, at `~/.config/shelfware/config.toml` (or under `$XDG_CONFIG_HOME`):
 
 ```toml
 since    = "6mo"
-ignore   = ["pam-reattach", "switchaudio-osx"]
+ignore   = ["imagemagick", "cargo-watch"]
 managers = ["brew", "cargo"]
 ```
 
@@ -190,13 +190,13 @@ shelfware --json | jq
 {
   "packages": [
     {
-      "name": "git-filter-repo",
+      "name": "cargo-watch",
       "manager": "brew",
       "verdict": "unused",
       "interactive_hits": 0,
       "last_exec_days_ago": 34,
       "in_shell_config": false,
-      "binaries": ["git-filter-repo"]
+      "binaries": ["cargo-watch"]
     }
   ]
 }

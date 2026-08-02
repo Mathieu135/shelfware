@@ -353,11 +353,11 @@ mod tests {
 
     #[test]
     fn parses_cargo_install_list() {
-        let out = "cargo-tauri v2.9.4:\n    cargo-tauri\nripgrep v14.1.0:\n    rg\n";
+        let out = "cargo-watch v8.5.3:\n    cargo-watch\nripgrep v14.1.0:\n    rg\n";
         let pkgs = parse_cargo(out, None);
 
         assert_eq!(pkgs.len(), 2);
-        assert_eq!(pkgs[0].name, "cargo-tauri");
+        assert_eq!(pkgs[0].name, "cargo-watch");
         // The reason this mapping exists at all: the package is `ripgrep`,
         // but what you type — and what the history records — is `rg`.
         assert_eq!(pkgs[1].name, "ripgrep");
@@ -446,7 +446,7 @@ mod tests {
         // A tapped Homebrew formula, installed under its bare name.
         assert_eq!(short_name("hashicorp/tap/vault"), "vault");
         // A scoped npm package.
-        assert_eq!(short_name("@mermaid-js/mermaid-cli"), "mermaid-cli");
+        assert_eq!(short_name("@acme/legacy-codegen"), "legacy-codegen");
         // Anything else is already short.
         assert_eq!(short_name("ripgrep"), "ripgrep");
     }

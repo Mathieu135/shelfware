@@ -82,7 +82,7 @@ CONFIGURATION
   ~/.config/shelfware/config.toml, all keys optional:
 
       since       = \"30d\"
-      ignore      = [\"pam-reattach\"]
+      ignore      = [\"imagemagick\"]
       managers    = [\"brew\", \"cargo\"]
 
   `ignore` is for permanent decisions: a tool you knowingly keep for

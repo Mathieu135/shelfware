@@ -218,7 +218,7 @@ mod tests {
 
     #[test]
     fn shell_plugins_are_integrations_not_garbage() {
-        // The direnv/antidote case: loaded at every shell startup, yet nobody
+        // The direnv/starship case: loaded at every shell startup, yet nobody
         // has ever typed their name.
         let s = Signals {
             interactive_hits: 0,
