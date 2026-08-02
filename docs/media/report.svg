@@ -1,0 +1,124 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="894" height="727" viewBox="0 0 894 727" font-family="ui-monospace,SFMono-Regular,Menlo,Consolas,monospace" font-size="13.0">
+<rect width="894" height="727" rx="10" fill="#16181d"/>
+<path d="M0 10a10 10 0 0 1 10-10h874a10 10 0 0 1 10 10v18H0z" fill="#21242b"/>
+<circle cx="19" cy="15" r="5" fill="#ec6a5f"/>
+<circle cx="37" cy="15" r="5" fill="#f4bf50"/>
+<circle cx="55" cy="15" r="5" fill="#61c554"/>
+<text x="18.0" y="44.0" xml:space="preserve" textLength="94.38" lengthAdjust="spacingAndGlyphs">
+<tspan fill="#5ec98d">$ </tspan><tspan fill="#cdd3de">shelfware</tspan>
+</text>
+<text x="18.0" y="64.2" xml:space="preserve" textLength="283.14" lengthAdjust="spacingAndGlyphs">
+<tspan fill="#ffffff" font-weight="600">shelfware</tspan>
+<tspan fill="#cdd3de"> — 66 packages inspected</tspan>
+</text>
+<text x="18.0" y="84.3" xml:space="preserve">
+</text>
+<text x="18.0" y="104.5" xml:space="preserve" textLength="446.16" lengthAdjust="spacingAndGlyphs">
+<tspan fill="#cdd3de">  active         14   </tspan>
+<tspan fill="#7d8590">Typed regularly at your prompt</tspan>
+</text>
+<text x="18.0" y="124.6" xml:space="preserve" textLength="557.70" lengthAdjust="spacingAndGlyphs">
+<tspan fill="#cdd3de">  indirect       39   </tspan>
+<tspan fill="#7d8590">Executed recently, but not by you typing it</tspan>
+</text>
+<text x="18.0" y="144.8" xml:space="preserve" textLength="557.70" lengthAdjust="spacingAndGlyphs">
+<tspan fill="#cdd3de">  rare            5   </tspan>
+<tspan fill="#7d8590">Typed occasionally, and not executed lately</tspan>
+</text>
+<text x="18.0" y="164.9" xml:space="preserve" textLength="600.60" lengthAdjust="spacingAndGlyphs">
+<tspan fill="#cdd3de">  integration     2   </tspan>
+<tspan fill="#7d8590">Never executed, but wired into your shell config</tspan>
+</text>
+<text x="18.0" y="185.1" xml:space="preserve" textLength="583.44" lengthAdjust="spacingAndGlyphs">
+<tspan fill="#cdd3de">  unused          6   </tspan>
+<tspan fill="#7d8590">No signal from any source — removal candidates</tspan>
+</text>
+<text x="18.0" y="205.2" xml:space="preserve">
+</text>
+<text x="18.0" y="225.4" xml:space="preserve" textLength="429.00" lengthAdjust="spacingAndGlyphs">
+<tspan fill="#ffffff" font-weight="600">RARE</tspan>
+<tspan fill="#cdd3de"> — Typed occasionally, and not executed lately</tspan>
+</text>
+<text x="18.0" y="245.5" xml:space="preserve" textLength="506.22" lengthAdjust="spacingAndGlyphs">
+<tspan fill="#cdd3de">  hey                  brew    </tspan>
+<tspan fill="#7d8590">typed 12× · last run 3mo ago</tspan>
+</text>
+<text x="18.0" y="265.7" xml:space="preserve" textLength="497.64" lengthAdjust="spacingAndGlyphs">
+<tspan fill="#cdd3de">  wrk                  brew    </tspan>
+<tspan fill="#7d8590">typed 4× · last run 5mo ago</tspan>
+</text>
+<text x="18.0" y="285.8" xml:space="preserve" textLength="497.64" lengthAdjust="spacingAndGlyphs">
+<tspan fill="#cdd3de">  cloc                 brew    </tspan>
+<tspan fill="#7d8590">typed 3× · last run 2mo ago</tspan>
+</text>
+<text x="18.0" y="306.0" xml:space="preserve" textLength="514.80" lengthAdjust="spacingAndGlyphs">
+<tspan fill="#cdd3de">  gource               brew    </tspan>
+<tspan fill="#7d8590">typed once · last run 7mo ago</tspan>
+</text>
+<text x="18.0" y="326.1" xml:space="preserve" textLength="514.80" lengthAdjust="spacingAndGlyphs">
+<tspan fill="#cdd3de">  httpstat             cargo   </tspan>
+<tspan fill="#7d8590">typed once · last run 4mo ago</tspan>
+</text>
+<text x="18.0" y="346.3" xml:space="preserve">
+</text>
+<text x="18.0" y="366.4" xml:space="preserve" textLength="531.96" lengthAdjust="spacingAndGlyphs">
+<tspan fill="#ffffff" font-weight="600">INTEGRATION</tspan>
+<tspan fill="#cdd3de"> — Never executed, but wired into your shell config</tspan>
+</text>
+<text x="18.0" y="386.6" xml:space="preserve" textLength="617.76" lengthAdjust="spacingAndGlyphs">
+<tspan fill="#cdd3de">  starship             brew    </tspan>
+<tspan fill="#7d8590">never typed · never run · in shell config</tspan>
+</text>
+<text x="18.0" y="406.7" xml:space="preserve" textLength="617.76" lengthAdjust="spacingAndGlyphs">
+<tspan fill="#cdd3de">  zoxide               brew    </tspan>
+<tspan fill="#7d8590">never typed · never run · in shell config</tspan>
+</text>
+<text x="18.0" y="426.9" xml:space="preserve">
+</text>
+<text x="18.0" y="447.0" xml:space="preserve" textLength="471.90" lengthAdjust="spacingAndGlyphs">
+<tspan fill="#ffffff" font-weight="600">UNUSED</tspan>
+<tspan fill="#cdd3de"> — No signal from any source — removal candidates</tspan>
+</text>
+<text x="18.0" y="467.2" xml:space="preserve" textLength="463.32" lengthAdjust="spacingAndGlyphs">
+<tspan fill="#cdd3de">  @acme/legacy-codegen npm     </tspan>
+<tspan fill="#7d8590">never typed · never run</tspan>
+</text>
+<text x="18.0" y="487.3" xml:space="preserve" textLength="523.38" lengthAdjust="spacingAndGlyphs">
+<tspan fill="#cdd3de">  asciinema            brew    </tspan>
+<tspan fill="#7d8590">never typed · last run 8mo ago</tspan>
+</text>
+<text x="18.0" y="507.5" xml:space="preserve" textLength="523.38" lengthAdjust="spacingAndGlyphs">
+<tspan fill="#cdd3de">  cargo-watch          cargo   </tspan>
+<tspan fill="#7d8590">never typed · last run 6mo ago</tspan>
+</text>
+<text x="18.0" y="527.6" xml:space="preserve" textLength="523.38" lengthAdjust="spacingAndGlyphs">
+<tspan fill="#cdd3de">  imagemagick          brew    </tspan>
+<tspan fill="#7d8590">never typed · last run 5mo ago</tspan>
+</text>
+<text x="18.0" y="547.8" xml:space="preserve" textLength="463.32" lengthAdjust="spacingAndGlyphs">
+<tspan fill="#cdd3de">  pandoc-crossref      brew    </tspan>
+<tspan fill="#7d8590">never typed · never run</tspan>
+</text>
+<text x="18.0" y="567.9" xml:space="preserve" textLength="523.38" lengthAdjust="spacingAndGlyphs">
+<tspan fill="#cdd3de">  yamllint             pipx    </tspan>
+<tspan fill="#7d8590">never typed · last run 9mo ago</tspan>
+</text>
+<text x="18.0" y="588.1" xml:space="preserve">
+</text>
+<text x="18.0" y="608.2" xml:space="preserve" textLength="386.10" lengthAdjust="spacingAndGlyphs">
+<tspan fill="#ffffff" font-weight="600">Review these 6 first</tspan>
+<tspan fill="#cdd3de"> — no recent sign of use:</tspan>
+</text>
+<text x="18.0" y="628.4" xml:space="preserve" textLength="694.98" lengthAdjust="spacingAndGlyphs">
+<tspan fill="#cdd3de">  @acme/legacy-codegen asciinema cargo-watch imagemagick pandoc-crossref yamllint</tspan>
+</text>
+<text x="18.0" y="648.5" xml:space="preserve">
+</text>
+<text x="18.0" y="668.7" xml:space="preserve" textLength="858.00" lengthAdjust="spacingAndGlyphs">
+<tspan fill="#7d8590">Check before removing.</tspan>
+<tspan fill="#cdd3de"> A tool used only inside containers, on another machine, or by a job that has </tspan>
+</text>
+<text x="18.0" y="688.8" xml:space="preserve" textLength="343.20" lengthAdjust="spacingAndGlyphs">
+<tspan fill="#cdd3de">not run this month leaves no trace here.</tspan>
+</text>
+</svg>
