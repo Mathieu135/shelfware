@@ -76,6 +76,15 @@ tell you what breaks.
 Non-trivial logic gets a test. The existing ones double as documentation of
 edge cases: read `src/classify.rs` and `src/signals.rs` for the tone.
 
+## Never commit a real report
+
+A report is a list of what someone has installed, which describes its owner
+more than it describes the tool. Screenshots, documentation examples and test
+fixtures all use the example machine in `docs/media/report.ansi` and
+`docs/media/clean.ansi` — `hey`, `cloc`, `starship`, `zoxide`, `cargo-watch`,
+`imagemagick`, `@acme/legacy-codegen`. Extend that machine rather than pasting
+your own output into a tracked file.
+
 ## Reporting a wrong verdict
 
 The most useful bug report for this project is "it said X was unused and it is
