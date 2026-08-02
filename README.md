@@ -82,6 +82,15 @@ sudo install shelfware-*/shelfware /usr/local/bin/
 
 `SHA256SUMS` is attached to the same release if you want to check the download.
 
+### Homebrew
+
+```sh
+brew install Mathieu135/tap/shelfware
+```
+
+macOS and Linux both. The formula installs the release binary and its shell
+completions, so no toolchain is involved.
+
 ### From crates.io
 
 Requires Rust 1.88+ and a C compiler — SQLite is compiled in, so Atuin support
