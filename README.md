@@ -20,6 +20,9 @@ It removes nothing. `shelfware clean` hands you a script to read.
 
 ![The shelfware report: counts per verdict, then the packages worth a decision, each with the evidence behind its verdict](docs/media/report.svg)
 
+<sub>An example machine. Publishing a real inventory would say more about its
+owner than about the tool.</sub>
+
 ## Why not just count your history
 
 Because counting is the easy half, and it is wrong on its own.
@@ -151,10 +154,11 @@ front than inferred from the commit style.
 
 What that means concretely:
 
-- The numbers in this README come from a real audit of a real machine, not
-  from an illustration. The tool was built by measuring first, and the
-  classification rules exist because the naive version got 7 of 13 verdicts
-  wrong on that machine.
+- The classification rules were derived by measuring, not by guessing: on the
+  machine this was written for, the naive version got 7 of 13 verdicts wrong,
+  and every rule exists to fix one of those. The screenshots above are an
+  example machine rather than that one, since a real report is an inventory of
+  somebody's laptop.
 - Design decisions were argued before being implemented. The comments in the
   source explain *why* a rule exists, which is usually "because the obvious
   implementation was wrong". `docs/how-it-works.md` is the long version.

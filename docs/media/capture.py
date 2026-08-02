@@ -1,17 +1,19 @@
 #!/usr/bin/env python3
 """Turn captured terminal output into the framed SVG screenshots in the README.
 
-The captures must come from a real terminal, since shelfware drops its styling
-when stdout is not a TTY. Regenerate both after changing the report:
+The input is `report.ansi` and `clean.ansi` next to this script — an example
+machine, not a real one. A real report is an inventory of someone's laptop, and
+publishing it says more about its owner than about the tool. Keep the fixtures
+in step with the real format by hand when the report changes:
 
-    cargo build --release
-    script -q /dev/null ./target/release/shelfware       > /tmp/report.ansi
-    script -q /dev/null ./target/release/shelfware clean > /tmp/clean.ansi
-    docs/media/capture.py /tmp/report.ansi shelfware         docs/media/report.svg
-    docs/media/capture.py /tmp/clean.ansi  "shelfware clean" docs/media/clean.svg
+    docs/media/capture.py docs/media/report.ansi shelfware         docs/media/report.svg
+    docs/media/capture.py docs/media/clean.ansi  "shelfware clean" docs/media/clean.svg
 
-On Linux `script` takes its arguments the other way round:
-`script -qc ./target/release/shelfware /dev/null > /tmp/report.ansi`.
+To see what the real thing looks like before editing a fixture, capture your
+own — shelfware drops its styling when stdout is not a TTY, so it needs one:
+
+    script -q /dev/null ./target/release/shelfware > /tmp/report.ansi   # macOS
+    script -qc ./target/release/shelfware /dev/null > /tmp/report.ansi  # Linux
 
 Only bold, dim and reset are understood, which is all the report emits.
 """

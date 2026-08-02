@@ -1,0 +1,31 @@
+[1mshelfware[0m — 66 packages inspected
+
+  active         14   [2mTyped regularly at your prompt[0m
+  indirect       39   [2mExecuted recently, but not by you typing it[0m
+  rare            5   [2mTyped occasionally, and not executed lately[0m
+  integration     2   [2mNever executed, but wired into your shell config[0m
+  unused          6   [2mNo signal from any source — removal candidates[0m
+
+[1mRARE[0m — Typed occasionally, and not executed lately
+  hey                  brew    [2mtyped 12× · last run 3mo ago[0m
+  wrk                  brew    [2mtyped 4× · last run 5mo ago[0m
+  cloc                 brew    [2mtyped 3× · last run 2mo ago[0m
+  gource               brew    [2mtyped once · last run 7mo ago[0m
+  httpstat             cargo   [2mtyped once · last run 4mo ago[0m
+
+[1mINTEGRATION[0m — Never executed, but wired into your shell config
+  starship             brew    [2mnever typed · never run · in shell config[0m
+  zoxide               brew    [2mnever typed · never run · in shell config[0m
+
+[1mUNUSED[0m — No signal from any source — removal candidates
+  @acme/legacy-codegen npm     [2mnever typed · never run[0m
+  asciinema            brew    [2mnever typed · last run 8mo ago[0m
+  cargo-watch          cargo   [2mnever typed · last run 6mo ago[0m
+  imagemagick          brew    [2mnever typed · last run 5mo ago[0m
+  pandoc-crossref      brew    [2mnever typed · never run[0m
+  yamllint             pipx    [2mnever typed · last run 9mo ago[0m
+
+[1mReview these 6 first[0m — no recent sign of use:
+  @acme/legacy-codegen asciinema cargo-watch imagemagick pandoc-crossref yamllint
+
+[2mCheck before removing.[0m A tool used only inside containers, on another machine, or by a job that has not run this month leaves no trace here.
