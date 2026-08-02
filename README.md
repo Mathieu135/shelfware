@@ -2,6 +2,7 @@
 
 **Find the tools you installed and stopped using.**
 
+[![crates.io](https://img.shields.io/crates/v/shelfware.svg)](https://crates.io/crates/shelfware)
 [![CI](https://github.com/Mathieu135/shelfware/actions/workflows/ci.yml/badge.svg)](https://github.com/Mathieu135/shelfware/actions/workflows/ci.yml)
 [![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 
